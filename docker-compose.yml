@@ -1,0 +1,49 @@
+# docker-compose.yml
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: financial_coach_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432" # Expose for local debugging (optional)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: financial_coach_app
+    ports:
+      - "8501:8501" # Streamlit Default Port
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - LLM_API_KEY=${LLM_API_KEY}
+    volumes:
+      - ./app/src:/app/src # Hot-reloading: Code changes reflect instantly
+    depends_on:
+      - db
+    command:
+      [
+        "uv",
+        "run",
+        "streamlit",
+        "run",
+        "src/main.py",
+        "--server.address=0.0.0.0",
+      ]
+
+volumes:
+  postgres_data:

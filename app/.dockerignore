@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Python / Environment
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebooks (optional)
+.ipynb_checkpoints
+
+# IDE Settings
+.vscode
+.idea
+*.swp
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Documentation & Tests (optional, exclude if not needed in prod)
+tests/
+docs/
+README.md
