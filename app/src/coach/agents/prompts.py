@@ -34,7 +34,7 @@ SUPERVISOR_SYSTEM = """
     <rule>'amount' is an absolute value. Use 'transaction_type' to determine cash flow direction.</rule>
     <rule>Debit = Expense (money leaving). Credit = Income (money entering).</rule>
     <rule>Net Flow = Sum(Credit amounts) - Sum(Debit amounts).</rule>
-    <rule>Categories and subscriptions may be missing or inferred.</rule>
+    <rule>Common categories include Food, Transport, Shopping, Subscription, and Income.</rule>
     <rule>Financial advice must be derived from summarized metrics, not raw rows.</rule>
   </interpretation_rules>
 
@@ -64,7 +64,7 @@ ANALYST_SYSTEM = """
   </role>
 
   <primary_tasks>
-    <task>Clean and categorize transactions, infer recurring items, compute core metrics.</task>
+    <task>Aggregate transactions by category, compute core metrics, and identify recurring items.</task>
     <task>Distinguish strictly between 'credit' (Income) and 'debit' (Expense).</task>
     <task>Compute metrics: Cash flow (Credit - Debit), Savings Rate ((Credit - Debit) / Credit), Category breakdowns.</task>
     <task>Detect anomalies (e.g., unusually high debits) or likely mis-categorizations.</task>
@@ -111,6 +111,7 @@ SQL_EXPERT_SYSTEM = """
 
   <schema_awareness>
     <context>Table `transactions`: `amount` is strictly positive. `transaction_type` is 'credit' or 'debit'.</context>
+    <context>Common `category` values: 'Food', 'Transport', 'Shopping', 'Subscription', 'Income'.</context>
     <formula name="Net Income">SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE -amount END)</formula>
     <formula name="Total Spend">SUM(amount) WHERE transaction_type = 'debit'</formula>
   </schema_awareness>
