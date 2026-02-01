@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432" # Expose for local debugging (optional)
+      - "5432:5432" # Expose for local debugging
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,32 +18,56 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
+  backend:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: financial_coach_app
+    container_name: financial_coach_backend
     ports:
-      - "8501:8501" # Streamlit Default Port
+      - "8000:8000" # FastAPI Default Port
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - LLM_API_KEY=${LLM_API_KEY}
+      - PYTHONPATH=/app/src
+    working_dir: /app/src
     volumes:
       - ./app/src:/app/src # Hot-reloading: Code changes reflect instantly
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command:
       [
         "uv",
         "run",
-        "streamlit",
-        "run",
-        "src/main.py",
-        "--server.address=0.0.0.0",
+        "uvicorn",
+        "coach.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
       ]
+
+  # Uncomment when ready to add frontend
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: financial_coach_frontend
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #     - /app/.next
+  #   environment:
+  #     - NODE_ENV=development
+  #     - NEXT_PUBLIC_API_URL=http://backend:8000
+  #   depends_on:
+  #     - backend
 
 volumes:
   postgres_data:

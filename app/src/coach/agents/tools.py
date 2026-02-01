@@ -5,7 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from sqlalchemy import create_engine
 
 try:
-    from ..config import settings
+    from coach.config import settings
 except ImportError:
     from config import settings
 

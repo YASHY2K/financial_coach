@@ -8,7 +8,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    # Set PATH to use 'uv', 'streamlit', etc. directly
+    # Set PATH to use 'uv', 'uvicorn', etc. directly
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
@@ -33,12 +33,12 @@ RUN uv sync --frozen --no-install-project
 # Ensure appuser owns the source code
 COPY --chown=appuser:appuser . .
 
-# Streamlit Specifics
-# Streamlit runs on 8501 by default
-EXPOSE 8501
+# FastAPI/Uvicorn Specifics
+# FastAPI runs on 8000 by default
+EXPOSE 8000
 
 # Healthcheck
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
 # Run Application
-CMD ["uv", "run", "streamlit", "run", "src/main.py", "--server.address=0.0.0.0"]
+CMD ["uv", "run", "uvicorn", "coach.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
