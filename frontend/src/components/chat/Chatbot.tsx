@@ -41,10 +41,10 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from '@/components/ai-elements/sources';
-import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
+import { ChatEmptyState } from './ChatEmptyState';
 
 interface MessageType {
   key: string;
@@ -64,17 +64,6 @@ interface MessageType {
 }
 
 const initialMessages: MessageType[] = [];
-
-const suggestions = [
-  'What are my spending patterns this month?',
-  'How can I save more money?',
-  'Analyze my budget',
-  'Give me financial advice',
-  'What are my biggest expenses?',
-  'Help me create a savings plan',
-  'Review my financial goals',
-  'Suggest ways to reduce spending',
-];
 
 const PromptInputAttachmentsDisplay = () => {
   const attachments = usePromptInputAttachments();
@@ -195,49 +184,55 @@ const Chatbot = () => {
   };
 
   return (
-    <div className="flex h-full flex-col w-full">
-      <Conversation className="w-full max-w-4xl mx-auto px-4">
-        <ConversationContent className="pb-4">
+    <div className="flex h-full flex-col w-full bg-background/50">
+      <Conversation className="w-full mx-auto px-4 pb-32">
+        <ConversationContent className="max-w-4xl mx-auto w-full pb-4">
           {messages.length === 0 && (
-             <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
-                <div className="bg-primary/10 p-4 rounded-full">
-                    <div className="size-8 rounded-full bg-primary animate-pulse" />
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight">How can I help you today?</h2>
-                <p className="text-muted-foreground max-w-md">
-                    I can help you analyze your finances, track spending, and plan for the future.
-                </p>
-             </div>
+             <ChatEmptyState onSuggestionClick={handleSuggestionClick} />
           )}
           
           {messages.map(({ versions, ...message }) => (
-            <MessageBranch defaultBranch={0} key={message.key} className="w-full">
+            <MessageBranch defaultBranch={0} key={message.key} className="w-full mb-6">
               <MessageBranchContent>
                 {versions.map((version) => (
-                  <Message from={message.from} key={`${message.key}-${version.id}`}>
-                    {message.sources?.length && (
-                      <Sources>
-                        <SourcesTrigger count={message.sources.length} />
-                        <SourcesContent>
-                          {message.sources.map((source) => (
-                            <Source
-                              href={source.href}
-                              key={source.href}
-                              title={source.title}
-                            />
-                          ))}
-                        </SourcesContent>
-                      </Sources>
+                  <Message from={message.from} key={`${message.key}-${version.id}`} className="gap-4">
+                    {message.from === 'assistant' && (
+                        <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                            <Bot className="size-5 text-primary" />
+                        </div>
                     )}
-                    {message.reasoning && (
-                      <Reasoning duration={message.reasoning.duration}>
-                        <ReasoningTrigger />
-                        <ReasoningContent>{message.reasoning.content}</ReasoningContent>
-                      </Reasoning>
-                    )}
-                    <MessageContent className={message.from === 'user' ? '!bg-primary !text-primary-foreground' : '!bg-muted/50'}>
-                      <MessageResponse>{version.content}</MessageResponse>
-                    </MessageContent>
+                    
+                    <div className="flex-1 min-w-0">
+                        {message.sources?.length && (
+                        <Sources>
+                            <SourcesTrigger count={message.sources.length} />
+                            <SourcesContent>
+                            {message.sources.map((source) => (
+                                <Source
+                                href={source.href}
+                                key={source.href}
+                                title={source.title}
+                                />
+                            ))}
+                            </SourcesContent>
+                        </Sources>
+                        )}
+                        {message.reasoning && (
+                        <Reasoning duration={message.reasoning.duration}>
+                            <ReasoningTrigger />
+                            <ReasoningContent>{message.reasoning.content}</ReasoningContent>
+                        </Reasoning>
+                        )}
+                        <MessageContent 
+                            className={
+                                message.from === 'user' 
+                                ? '!bg-secondary/80 !text-secondary-foreground rounded-2xl px-5 py-3 shadow-sm' 
+                                : '!bg-transparent !text-foreground !p-0'
+                            }
+                        >
+                        <MessageResponse>{version.content}</MessageResponse>
+                        </MessageContent>
+                    </div>
                   </Message>
                 ))}
               </MessageBranchContent>
@@ -251,37 +246,24 @@ const Chatbot = () => {
             </MessageBranch>
           ))}
           {status === 'submitted' && (
-            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground ml-12">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Thinking...</span>
             </div>
           )}
         </ConversationContent>
-        <ConversationScrollButton />
+        <ConversationScrollButton className="mb-24" />
       </Conversation>
 
-      <div className="w-full bg-background border-t p-4 pb-6">
-        <div className="max-w-4xl mx-auto space-y-4">
-            {messages.length === 0 && (
-                <Suggestions className="justify-center">
-                {suggestions.slice(0, 4).map((suggestion) => (
-                    <Suggestion
-                    key={suggestion}
-                    suggestion={suggestion}
-                    onClick={handleSuggestionClick}
-                    variant="outline"
-                    className="hover:bg-accent transition-colors"
-                    />
-                ))}
-                </Suggestions>
-            )}
-
-            <div className="relative rounded-2xl border bg-muted/30 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+      {/* Floating Input Area */}
+      <div className="fixed bottom-0 w-full bg-gradient-to-t from-background via-background to-transparent pt-10 pb-6 px-4 z-10">
+        <div className="max-w-3xl mx-auto">
+            <div className="relative rounded-[2rem] border bg-background shadow-lg focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all hover:shadow-xl">
                 <PromptInput 
                     globalDrop 
                     multiple 
                     onSubmit={handleSubmit}
-                    className="rounded-2xl overflow-hidden"
+                    className="rounded-[2rem] overflow-hidden"
                 >
                     <PromptInputHeader>
                     <PromptInputAttachmentsDisplay />
@@ -291,18 +273,21 @@ const Chatbot = () => {
                         onChange={(event) => setText(event.target.value)}
                         value={text}
                         placeholder="Ask about your finances..."
-                        className="bg-transparent border-0 focus-visible:ring-0 px-4 py-3 min-h-[60px]"
+                        className="bg-transparent border-0 focus-visible:ring-0 px-6 py-4 min-h-[52px] max-h-[200px] resize-none"
                     />
                     </PromptInputBody>
                     <PromptInputFooter className="px-4 pb-3">
                     <PromptInputSubmit
                         disabled={!text.trim() && status !== 'streaming'}
                         status={status}
-                        className="ml-auto"
+                        className="ml-auto rounded-full size-8"
                     />
                     </PromptInputFooter>
                 </PromptInput>
             </div>
+            <p className="text-[10px] text-center text-muted-foreground mt-3">
+                AI Financial Coach can make mistakes. Please verify important information.
+            </p>
         </div>
       </div>
     </div>
