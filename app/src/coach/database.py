@@ -25,8 +25,8 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 # --- Synchronous Engine for LangChain Tools (Singleton) ---
-# Convert Async URL to Sync URL (asyncpg -> psycopg2)
-sync_db_url = settings.database_url.replace("+asyncpg", "+psycopg2")
+# Use the dedicated Read-Only URL
+sync_db_url = settings.readonly_database_url
 
 sync_engine = create_engine(
     sync_db_url,

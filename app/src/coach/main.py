@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from coach.schema import ChatRequest, ChatResponse, Message
+from coach.security import setup_readonly_user
 from typing import List, Dict
 import logging
 import sys
@@ -23,11 +25,24 @@ except ImportError:
 
     logger.info("Successfully imported graph from agents (fallback)")
 
+
+# --- Lifespan (Startup/Shutdown) ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Ensure DB permissions
+    logger.info("Startup: Verifying database permissions...")
+    setup_readonly_user()
+    yield
+    # Shutdown: Clean up resources if needed
+    logger.info("Shutdown: Application stopping...")
+
+
 # --- FastAPI App Setup ---
 app = FastAPI(
     title="Smart Financial Coach API",
     description="API for financial coaching and spending analysis",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Enable CORS for frontend integration
