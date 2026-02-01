@@ -12,10 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from coach.agents.graph import graph
 from coach.database import get_db
-from coach.models import Transaction
+from coach.models import Transaction, Insight
+from coach.services.insights import InsightService
 
 logger = logging.getLogger("fastapi_app")
 logger.info("Successfully imported graph and models")
+
+insight_service = InsightService()
 
 
 # --- Lifespan (Startup/Shutdown) ---
@@ -331,6 +334,61 @@ async def get_subscriptions(db: AsyncSession = Depends(get_db)):
             }
 
     return list(unique_subs.values())
+
+
+@app.get("/api/insights")
+async def get_insights(db: AsyncSession = Depends(get_db)):
+    """
+    Get all insights for the demo user.
+    """
+    user_id = 1
+    stmt = (
+        select(Insight)
+        .where(Insight.user_id == user_id)
+        .order_by(desc(Insight.created_at))
+        .limit(5)
+    )
+    result = await db.execute(stmt)
+    insights = result.scalars().all()
+    
+    return [
+        {
+            "id": i.id_,
+            "title": i.title,
+            "message": i.message,
+            "type": i.type,
+            "created_at": i.created_at.isoformat(),
+            "is_read": i.is_read
+        }
+        for i in insights
+    ]
+
+
+@app.post("/api/insights/generate")
+async def generate_insights(db: AsyncSession = Depends(get_db)):
+    """
+    Manually trigger insight generation.
+    """
+    user_id = 1
+    new_insights = await insight_service.generate_proactive_insights(db, user_id)
+    return {"status": "success", "count": len(new_insights)}
+
+
+@app.patch("/api/insights/{insight_id}/read")
+async def mark_insight_as_read(insight_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Mark an insight as read.
+    """
+    stmt = select(Insight).where(Insight.id_ == insight_id)
+    result = await db.execute(stmt)
+    insight = result.scalars().first()
+    
+    if not insight:
+        raise HTTPException(status_code=404, detail="Insight not found")
+    
+    insight.is_read = True
+    await db.commit()
+    return {"status": "success"}
 
 
 if __name__ == "__main__":

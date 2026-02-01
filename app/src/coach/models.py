@@ -26,8 +26,32 @@ class User(AsyncAttrs, Base):
         "Transaction", back_populates="owner", cascade="all, delete-orphan"
     )
 
+    # One-to-Many Relationship for Insights
+    insights: Mapped[List["Insight"]] = relationship(
+        "Insight", back_populates="owner", cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<User(id={self.id_}, username='{self.username}')>"
+
+
+class Insight(AsyncAttrs, Base):
+    __tablename__ = "insights"
+
+    id_: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id_"))
+    
+    title: Mapped[str] = mapped_column(String(100))
+    message: Mapped[str] = mapped_column(Text)
+    type: Mapped[str] = mapped_column(String(50))  # e.g., 'trend', 'alert', 'achievement'
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Relationship back to User
+    owner: Mapped["User"] = relationship("User", back_populates="insights")
+
+    def __repr__(self) -> str:
+        return f"<Insight(id={self.id_}, title='{self.title}')>"
 
 
 class Transaction(AsyncAttrs, Base):
