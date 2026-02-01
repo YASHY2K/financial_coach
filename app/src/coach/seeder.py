@@ -8,8 +8,8 @@ from typing import List
 from faker import Faker
 from sqlalchemy import select
 
-from database import engine, AsyncSessionLocal, Base
-from models import User, Transaction
+from .database import engine, AsyncSessionLocal, Base
+from .models import User, Transaction
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"

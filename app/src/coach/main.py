@@ -1,37 +1,27 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from coach.schema import ChatRequest, ChatResponse, Message
-from coach.security import setup_readonly_user
 from typing import List, Dict
 import logging
-import sys
+from datetime import date, timedelta
 from langchain_core.messages import HumanMessage
 
-# --- Setup Logging ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+from sqlalchemy import select, func, desc
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from coach.agents.graph import graph
+from coach.database import get_db
+from coach.models import Transaction
+
 logger = logging.getLogger("fastapi_app")
-
-try:
-    from coach.agents.graph import graph
-
-    logger.info("Successfully imported graph from src.agents")
-except ImportError:
-    from agents.graph import graph
-
-    logger.info("Successfully imported graph from agents (fallback)")
+logger.info("Successfully imported graph and models")
 
 
 # --- Lifespan (Startup/Shutdown) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Ensure DB permissions
-    logger.info("Startup: Verifying database permissions...")
-    setup_readonly_user()
+    # Startup: Database permissions managed externally
     yield
     # Shutdown: Clean up resources if needed
     logger.info("Shutdown: Application stopping...")
@@ -166,6 +156,181 @@ async def reset_session(thread_id: str = "demo_session_1"):
 async def list_sessions():
     """List all active sessions"""
     return {"sessions": list(sessions.keys()), "count": len(sessions)}
+
+
+# --- Dashboard API Endpoints ---
+
+
+@app.get("/api/dashboard/summary")
+async def get_dashboard_summary(db: AsyncSession = Depends(get_db)):
+    """
+    Get summary statistics: Total Balance (Income - Expense), Monthly Spending, Savings Rate.
+    Note: For this demo, we assume 'demo_user' (user_id=1).
+    """
+    user_id = 1  # Hardcoded for demo simplicity
+
+    # 1. Total Balance Calculation
+    # Sum of all credits (Income) - Sum of all debits (Expenses)
+    income_stmt = select(func.sum(Transaction.amount)).where(
+        Transaction.user_id == user_id, Transaction.transaction_type == "credit"
+    )
+    expense_stmt = select(func.sum(Transaction.amount)).where(
+        Transaction.user_id == user_id, Transaction.transaction_type == "debit"
+    )
+
+    total_income = (await db.execute(income_stmt)).scalar() or 0
+    total_expense = (await db.execute(expense_stmt)).scalar() or 0
+    balance = float(total_income - total_expense)
+
+    # 2. Monthly Spending (Current Month)
+    today = date.today()
+    start_of_month = today.replace(day=1)
+
+    monthly_stmt = select(func.sum(Transaction.amount)).where(
+        Transaction.user_id == user_id,
+        Transaction.transaction_type == "debit",
+        Transaction.date >= start_of_month,
+    )
+    monthly_spending = (await db.execute(monthly_stmt)).scalar() or 0
+
+    # 3. Savings Rate (Income vs Expense for current month)
+    monthly_income_stmt = select(func.sum(Transaction.amount)).where(
+        Transaction.user_id == user_id,
+        Transaction.transaction_type == "credit",
+        Transaction.date >= start_of_month,
+    )
+    monthly_income = (await db.execute(monthly_income_stmt)).scalar() or 0
+
+    savings_rate = 0
+    if monthly_income > 0:
+        savings_rate = ((monthly_income - monthly_spending) / monthly_income) * 100
+
+    return {
+        "total_balance": balance,
+        "monthly_spending": float(monthly_spending),
+        "savings_rate": round(float(savings_rate), 1),
+        "currency": "$",
+    }
+
+
+@app.get("/api/dashboard/categories")
+async def get_spending_by_category(db: AsyncSession = Depends(get_db)):
+    """
+    Get spending breakdown by category for the current month.
+    """
+    user_id = 1
+    today = date.today()
+    start_of_month = today.replace(day=1)
+
+    stmt = (
+        select(Transaction.category, func.sum(Transaction.amount).label("total"))
+        .where(
+            Transaction.user_id == user_id,
+            Transaction.transaction_type == "debit",
+            Transaction.date >= start_of_month,
+            Transaction.category.isnot(None),
+        )
+        .group_by(Transaction.category)
+    )
+
+    results = await db.execute(stmt)
+    data = [{"name": row.category, "value": float(row.total)} for row in results]
+
+    return data
+
+
+@app.get("/api/dashboard/trend")
+async def get_spending_trend(db: AsyncSession = Depends(get_db), days: int = 30):
+    """
+    Get daily spending trend for the last N days.
+    """
+    user_id = 1
+    end_date = date.today()
+    start_date = end_date - timedelta(days=days)
+
+    stmt = (
+        select(Transaction.date, func.sum(Transaction.amount).label("daily_total"))
+        .where(
+            Transaction.user_id == user_id,
+            Transaction.transaction_type == "debit",
+            Transaction.date >= start_date,
+        )
+        .group_by(Transaction.date)
+        .order_by(Transaction.date)
+    )
+
+    results = await db.execute(stmt)
+
+    # Format for chart: "Jan 01"
+    data = [
+        {"date": row.date.strftime("%b %d"), "amount": float(row.daily_total)}
+        for row in results
+    ]
+    return data
+
+
+@app.get("/api/transactions")
+async def get_transactions(
+    db: AsyncSession = Depends(get_db), limit: int = 10, offset: int = 0
+):
+    """
+    Get paginated list of transactions.
+    """
+    user_id = 1
+    stmt = (
+        select(Transaction)
+        .where(Transaction.user_id == user_id)
+        .order_by(desc(Transaction.date))
+        .limit(limit)
+        .offset(offset)
+    )
+
+    results = await db.execute(stmt)
+    transactions = results.scalars().all()
+
+    return [
+        {
+            "id": t.id_,
+            "merchant": t.merchant,
+            "amount": float(t.amount),
+            "date": t.date.isoformat(),
+            "category": t.category or "Uncategorized",
+            "type": t.transaction_type,
+        }
+        for t in transactions
+    ]
+
+
+@app.get("/api/subscriptions")
+async def get_subscriptions(db: AsyncSession = Depends(get_db)):
+    """
+    Get active subscriptions.
+    """
+    user_id = 1
+
+    # Improved logic: Find the latest transaction for each subscription merchant
+    # For now, simple query to get all sub transactions and dedupe in python
+    stmt = (
+        select(Transaction)
+        .where(Transaction.user_id == user_id, Transaction.is_subscription == True)
+        .order_by(desc(Transaction.date))
+    )
+
+    results = await db.execute(stmt)
+    all_subs = results.scalars().all()
+
+    unique_subs = {}
+    for sub in all_subs:
+        if sub.merchant not in unique_subs:
+            unique_subs[sub.merchant] = {
+                "id": sub.id_,
+                "name": sub.merchant,
+                "amount": float(sub.amount),
+                "due_date": sub.date.day,  # rudimentary "due day"
+                "category": sub.category,
+            }
+
+    return list(unique_subs.values())
 
 
 if __name__ == "__main__":

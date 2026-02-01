@@ -1,26 +1,26 @@
-import Chatbot from './components/chat/Chatbot'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import './App.css'
+import DashboardLayout from './components/layout/DashboardLayout';
+import Dashboard from './pages/Dashboard';
+import ChatPage from './pages/ChatPage';
+import './App.css';
 
 function App() {
   return (
-    // Force dark mode for high contrast as requested. 
-    // In a real app, this would be a ThemeProvider.
-    <div className="dark h-full w-full bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
-      <div className="flex h-full flex-col overflow-hidden">
-        <header className="flex h-14 items-center border-b px-6 shrink-0 bg-muted/20 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <div className="size-6 rounded-full bg-primary" />
-            <h1 className="text-lg font-semibold tracking-tight">Financial Coach</h1>
-          </div>
-        </header>
-        <main className="flex-1 overflow-hidden relative">
-          <Chatbot />
-        </main>
+    <Router>
+      <div className="dark h-full w-full bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+        <Routes>
+          <Route path="/" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="chat" element={<ChatPage />} />
+            {/* Fallback */}
+            <Route path="*" element={<Dashboard />} />
+          </Route>
+        </Routes>
+        <Toaster />
       </div>
-      <Toaster />
-    </div>
-  )
+    </Router>
+  );
 }
 
-export default App
+export default App;

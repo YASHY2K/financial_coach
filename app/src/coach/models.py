@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import List, Optional
 from sqlalchemy import Date, String, ForeignKey, Text, func, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from database import Base
+from .database import Base
 
 
 class User(AsyncAttrs, Base):

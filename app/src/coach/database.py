@@ -4,10 +4,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import create_engine
 from langchain_community.utilities import SQLDatabase
 
-try:
-    from coach.config import settings
-except ImportError:
-    from config import settings
+from .config import settings
 
 # Create async engine with connection pooling
 engine = create_async_engine(
@@ -36,8 +33,14 @@ sync_engine = create_engine(
     max_overflow=10,
 )
 
-# Singleton SQLDatabase instance (inspects schema once at startup)
-sync_db = SQLDatabase(sync_engine)
+# Singleton SQLDatabase instance (lazy load)
+_sync_db_instance = None
+
+def get_sync_db():
+    global _sync_db_instance
+    if _sync_db_instance is None:
+        _sync_db_instance = SQLDatabase(sync_engine)
+    return _sync_db_instance
 
 
 class Base(DeclarativeBase):

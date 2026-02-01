@@ -7,16 +7,10 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 
-try:
-    from .state import AgentState
-    from .tools import get_financial_tools
-    from .prompts import SUPERVISOR_SYSTEM, ANALYST_SYSTEM, SQL_EXPERT_SYSTEM
-    from ..config import settings
-except ImportError:
-    from agents.state import AgentState
-    from agents.tools import get_financial_tools
-    from agents.prompts import SUPERVISOR_SYSTEM, ANALYST_SYSTEM, SQL_EXPERT_SYSTEM
-    from config import settings
+from .state import AgentState
+from .tools import get_financial_tools
+from .prompts import SUPERVISOR_SYSTEM, ANALYST_SYSTEM, SQL_EXPERT_SYSTEM
+from ..config import settings
 
 # Initialize Model & Tools
 llm = ChatGoogleGenerativeAI(
