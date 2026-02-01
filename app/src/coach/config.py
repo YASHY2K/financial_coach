@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     # LLM Config
     LLM_API_KEY: str
+    LLM_MODEL: str = "gemini-2.5-flash"
 
     @computed_field
     def database_url(self) -> str:
