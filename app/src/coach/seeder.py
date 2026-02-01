@@ -52,7 +52,7 @@ def _generate_transaction_data(user_id: int) -> List[Transaction]:
     }
 
     transactions = []
-    start_date = date.today() - timedelta(days=900)
+    start_date = date.today() - timedelta(days=730)
     end_date = date.today()
 
     current_date = start_date
@@ -69,8 +69,23 @@ def _generate_transaction_data(user_id: int) -> List[Transaction]:
                         description=f"Monthly charge for {desc}",
                         is_subscription=True,
                         category="Subscription",
+                        transaction_type="debit",
                     )
                 )
+
+            # Income (Monthly Salary on the 1st)
+            transactions.append(
+                Transaction(
+                    user_id=user_id,
+                    merchant="Tech Corp Inc.",
+                    amount=Decimal("5000.00"),
+                    date=current_date,
+                    description="Monthly Salary",
+                    is_subscription=False,
+                    category="Income",
+                    transaction_type="credit",
+                )
+            )
 
         # B. Daily Spending
         if random.random() < 0.4:
@@ -87,6 +102,7 @@ def _generate_transaction_data(user_id: int) -> List[Transaction]:
                     description=f"Purchase at {merch}",
                     is_subscription=False,
                     category=None,  # AI target
+                    transaction_type="debit",
                 )
             )
 

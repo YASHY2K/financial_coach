@@ -40,6 +40,7 @@ class Transaction(AsyncAttrs, Base):
 
     # Use Decimal for monetary values
     amount: Mapped[Decimal] = mapped_column(nullable=False)
+    transaction_type: Mapped[str] = mapped_column(String(10), nullable=False, server_default="debit")
     merchant: Mapped[str] = mapped_column(String(100))
     date: Mapped[date] = mapped_column(Date, nullable=False)
 
