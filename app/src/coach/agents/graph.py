@@ -20,7 +20,7 @@ except ImportError:
 
 # Initialize Model & Tools
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash", temperature=0, api_key=settings.LLM_API_KEY
+    model="gemini-2.5-flash", temperature=0, api_key=settings.LLM_API_KEY
 )
 tools = get_financial_tools(llm)
 

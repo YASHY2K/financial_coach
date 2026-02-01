@@ -104,6 +104,17 @@ async def chat(request: ChatRequest):
 
         # Extract final response
         final_response = result["messages"][-1].content
+
+        # Handle case where content is a list (e.g. multimodal output)
+        if isinstance(final_response, list):
+            text_parts = []
+            for block in final_response:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+                elif isinstance(block, str):
+                    text_parts.append(block)
+            final_response = "".join(text_parts)
+
         logger.info(f"AI Response generated (Length: {len(final_response)} chars)")
 
         # Add assistant message to history

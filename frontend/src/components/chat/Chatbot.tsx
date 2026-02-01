@@ -21,32 +21,13 @@ import {
   MessageResponse,
 } from '@/components/ai-elements/message';
 import {
-  ModelSelector,
-  ModelSelectorContent,
-  ModelSelectorEmpty,
-  ModelSelectorGroup,
-  ModelSelectorInput,
-  ModelSelectorItem,
-  ModelSelectorList,
-  ModelSelectorLogo,
-  ModelSelectorLogoGroup,
-  ModelSelectorName,
-  ModelSelectorTrigger,
-} from '@/components/ai-elements/model-selector';
-import {
   PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
   PromptInputBody,
-  PromptInputButton,
   PromptInputFooter,
   PromptInputHeader,
   type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
-  PromptInputTools,
   usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input';
 import {
@@ -61,7 +42,6 @@ import {
   SourcesTrigger,
 } from '@/components/ai-elements/sources';
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
-import { CheckIcon, GlobeIcon, MicIcon } from 'lucide-react';
 // import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -84,44 +64,6 @@ interface MessageType {
 }
 
 const initialMessages: MessageType[] = [];
-
-const models = [
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    chef: 'OpenAI',
-    chefSlug: 'openai',
-    providers: ['openai', 'azure'],
-  },
-  {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    chef: 'OpenAI',
-    chefSlug: 'openai',
-    providers: ['openai', 'azure'],
-  },
-  {
-    id: 'claude-opus-4-20250514',
-    name: 'Claude 4 Opus',
-    chef: 'Anthropic',
-    chefSlug: 'anthropic',
-    providers: ['anthropic', 'azure', 'google', 'amazon-bedrock'],
-  },
-  {
-    id: 'claude-sonnet-4-20250514',
-    name: 'Claude 4 Sonnet',
-    chef: 'Anthropic',
-    chefSlug: 'anthropic',
-    providers: ['anthropic', 'azure', 'google', 'amazon-bedrock'],
-  },
-  {
-    id: 'gemini-2.0-flash-exp',
-    name: 'Gemini 2.0 Flash',
-    chef: 'Google',
-    chefSlug: 'google',
-    providers: ['google'],
-  },
-];
 
 const suggestions = [
   'What are my spending patterns this month?',
@@ -158,16 +100,11 @@ const PromptInputAttachmentsDisplay = () => {
 };
 
 const Chatbot = () => {
-  const [model, setModel] = useState<string>(models[0].id);
-  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [text, setText] = useState<string>('');
-  const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const [useMicrophone, setUseMicrophone] = useState<boolean>(false);
   const [status, setStatus] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
   const [messages, setMessages] = useState<MessageType[]>(initialMessages);
   const [threadId] = useState<string>(`session-${Date.now()}`);
 
-  const selectedModelData = models.find((m) => m.id === model);
 
   const addUserMessage = useCallback(
     async (content: string) => {
@@ -259,7 +196,12 @@ const Chatbot = () => {
   };
 
   return (
-    <div className="relative flex size-full flex-col divide-y overflow-hidden">
+    <div className="relative flex flex-col size-full divide-y overflow-hidden"
+    style={{
+      justifyContent: messages.length === 0 ? 'center' : 'stretch',
+      alignItems: messages.length === 0 ? 'center' : 'stretch',
+    }}
+    >
       <Conversation>
         <ConversationContent>
           {messages.map(({ versions, ...message }) => (
@@ -314,12 +256,13 @@ const Chatbot = () => {
 
       <div className="grid shrink-0 gap-4 pt-4">
         {messages.length === 0 && (
-        <Suggestions className="px-4">
+        <Suggestions className="px-4 ">
           {suggestions.map((suggestion) => (
             <Suggestion
               key={suggestion}
               suggestion={suggestion}
               onClick={handleSuggestionClick}
+              variant={'ghost'}
             />
           ))}
         </Suggestions>
@@ -339,81 +282,6 @@ const Chatbot = () => {
               />
             </PromptInputBody>
             <PromptInputFooter>
-              <PromptInputTools>
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger />
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
-
-                <PromptInputButton
-                  onClick={() => setUseMicrophone(!useMicrophone)}
-                  variant={useMicrophone ? 'default' : 'ghost'}
-                >
-                  <MicIcon size={16} />
-                  <span className="sr-only">Microphone</span>
-                </PromptInputButton>
-
-                <PromptInputButton
-                  onClick={() => setUseWebSearch(!useWebSearch)}
-                  variant={useWebSearch ? 'default' : 'ghost'}
-                >
-                  <GlobeIcon size={16} />
-                  <span>Search</span>
-                </PromptInputButton>
-
-                <ModelSelector
-                  onOpenChange={setModelSelectorOpen}
-                  open={modelSelectorOpen}
-                >
-                  <ModelSelectorTrigger asChild>
-                    <PromptInputButton>
-                      {selectedModelData?.chefSlug && (
-                        <ModelSelectorLogo provider={selectedModelData.chefSlug} />
-                      )}
-                      {selectedModelData?.name && (
-                        <ModelSelectorName>{selectedModelData.name}</ModelSelectorName>
-                      )}
-                    </PromptInputButton>
-                  </ModelSelectorTrigger>
-                  <ModelSelectorContent>
-                    <ModelSelectorInput placeholder="Search models..." />
-                    <ModelSelectorList>
-                      <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                      {['OpenAI', 'Anthropic', 'Google'].map((chef) => (
-                        <ModelSelectorGroup heading={chef} key={chef}>
-                          {models
-                            .filter((m) => m.chef === chef)
-                            .map((m) => (
-                              <ModelSelectorItem
-                                key={m.id}
-                                onSelect={() => {
-                                  setModel(m.id);
-                                  setModelSelectorOpen(false);
-                                }}
-                                value={m.id}
-                              >
-                                <ModelSelectorLogo provider={m.chefSlug} />
-                                <ModelSelectorName>{m.name}</ModelSelectorName>
-                                <ModelSelectorLogoGroup>
-                                  {m.providers.map((provider) => (
-                                    <ModelSelectorLogo key={provider} provider={provider} />
-                                  ))}
-                                </ModelSelectorLogoGroup>
-                                {model === m.id ? (
-                                  <CheckIcon className="ml-auto size-4" />
-                                ) : (
-                                  <div className="ml-auto size-4" />
-                                )}
-                              </ModelSelectorItem>
-                            ))}
-                        </ModelSelectorGroup>
-                      ))}
-                    </ModelSelectorList>
-                  </ModelSelectorContent>
-                </ModelSelector>
-              </PromptInputTools>
               <PromptInputSubmit
                 disabled={!text.trim() && status !== 'streaming'}
                 status={status}

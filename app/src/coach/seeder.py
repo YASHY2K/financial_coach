@@ -52,7 +52,7 @@ def _generate_transaction_data(user_id: int) -> List[Transaction]:
     }
 
     transactions = []
-    start_date = date.today() - timedelta(days=90)
+    start_date = date.today() - timedelta(days=900)
     end_date = date.today()
 
     current_date = start_date
