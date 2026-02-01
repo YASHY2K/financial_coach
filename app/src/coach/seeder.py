@@ -101,7 +101,7 @@ def _generate_transaction_data(user_id: int) -> List[Transaction]:
                     date=current_date,
                     description=f"Purchase at {merch}",
                     is_subscription=False,
-                    category=None,  # AI target
+                    category=category_key,
                     transaction_type="debit",
                 )
             )
