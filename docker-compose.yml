@@ -53,24 +53,22 @@ services:
         "8000",
         "--reload",
       ]
-
-  # Uncomment when ready to add frontend
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: financial_coach_frontend
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-  #     - /app/.next
-  #   environment:
-  #     - NODE_ENV=development
-  #     - NEXT_PUBLIC_API_URL=http://backend:8000
-  #   depends_on:
-  #     - backend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: financial_coach_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Prevent overwriting node_modules from host
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000 # Backend API URL for browser
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
